@@ -1,14 +1,13 @@
 import java.sql.*;
-import java.util.ArrayList;
 
 public class RestaurantJDBC {
 
-    static final String URL  = "jdbc:mysql://localhost:3306/restaurant_db";
+    static final String URL = "jdbc:mysql://localhost:3306/restaurant_db";
     static final String USER = "root";
-    static final String PASS = "sit123"; 
+    static final String PASS = "sit123";
 
     public static Connection getConnection() throws Exception {
-
+        Class.forName("com.mysql.cj.jdbc.Driver");
         String serverUrl = "jdbc:mysql://localhost:3306/";
         try (Connection serverCon = DriverManager.getConnection(serverUrl, USER, PASS);
              Statement st = serverCon.createStatement()) {
@@ -20,139 +19,233 @@ public class RestaurantJDBC {
 
     public static void createTables(Connection con) throws Exception {
         try (Statement st = con.createStatement()) {
-            st.executeUpdate(
-                "CREATE TABLE IF NOT EXISTS Restaurant (" +
-                "Id INT PRIMARY KEY, " +
-                "Name VARCHAR(255), " +
-                "Address VARCHAR(255))"
-            );
-            st.executeUpdate(
-                "CREATE TABLE IF NOT EXISTS MenuItem (" +
-                "Id INT PRIMARY KEY, " +
-                "Name VARCHAR(255), " +
-                "Price DOUBLE, " +
-                "ResId INT, " +
-                "FOREIGN KEY (ResId) REFERENCES Restaurant(Id))"
-            );
+            String createRestaurant = "CREATE TABLE Restaurant (" +
+                    "Id INT PRIMARY KEY, " +
+                    "Name VARCHAR(255), " +
+                    "Address VARCHAR(255))";
+            st.executeUpdate(createRestaurant);
+            String createMenuItem = "CREATE TABLE MenuItem (" +
+                    "Id INT PRIMARY KEY, " +
+                    "Name VARCHAR(255), " +
+                    "Price DOUBLE, " +
+                    "ResId INT, " +
+                    "FOREIGN KEY (ResId) REFERENCES Restaurant(Id))";
+            st.executeUpdate(createMenuItem);
         }
     }
 
-    public static void insertRestaurant(Connection con, int id, String name, String address)
-            throws Exception {
-        String sql = "INSERT INTO Restaurant VALUES (?, ?, ?)";
-        try (PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setInt(1, id);
-            ps.setString(2, name);
-            ps.setString(3, address);
-            ps.executeUpdate();
+    public static void insertData(Connection con) throws Exception {
+        String insertRestaurant = "INSERT INTO Restaurant VALUES (?, ?, ?)";
+        String insertMenu = "INSERT INTO MenuItem VALUES (?, ?, ?, ?)";
+
+        try (PreparedStatement ps1 = con.prepareStatement(insertRestaurant);
+             PreparedStatement ps2 = con.prepareStatement(insertMenu)) {
+
+            Object[][] restaurants = {
+                {1, "Cafe Java", "101 Main St"},
+                {2, "Pizza Palace", "202 Oak Ave"},
+                {3, "Burger Joint", "303 Pine Rd"},
+                {4, "The Pasta Place", "404 Elm St"},
+                {5, "Taco Corner", "505 Maple Dr"},
+                {6, "Sub Shop", "606 Cedar Ln"},
+                {7, "Sushi World", "707 Birch Blvd"},
+                {8, "Steakhouse", "808 Walnut St"},
+                {9, "Vegan Bites", "909 Cherry Way"},
+                {10, "Breakfast Club", "1010 Ash Ct"}
+            };
+
+            for (Object[] r : restaurants) {
+                ps1.setInt(1, (Integer) r[0]);
+                ps1.setString(2, (String) r[1]);
+                ps1.setString(3, (String) r[2]);
+                ps1.executeUpdate();
+            }
+
+            Object[][] menuItems = {
+                {101, "Coffee", 50.0, 1},      
+                {102, "Tea", 40.0, 1},          
+                {103, "Pastry", 120.0, 1},     
+                {104, "Pizza", 250.0, 2},       
+                {105, "Burger", 80.0, 3},      
+                {106, "Pasta", 180.0, 4},       
+                {107, "Taco", 60.0, 5},        
+                {108, "Pancake", 90.0, 10},    
+                {109, "Salad", 110.0, 9},      
+                {110, "Steak", 500.0, 8}      
+            };
+
+            for (Object[] m : menuItems) {
+                ps2.setInt(1, (Integer) m[0]);
+                ps2.setString(2, (String) m[1]);
+                ps2.setDouble(3, (Double) m[2]);
+                ps2.setInt(4, (Integer) m[3]);
+                ps2.executeUpdate();
+            }
+
+            System.out.println("Inserted 10 specific records in each table.");
         }
     }
 
-    public static ArrayList<String[]> getAllRestaurants(Connection con) throws Exception {
-        ArrayList<String[]> list = new ArrayList<String[]>();
-        String sql = "SELECT * FROM Restaurant";
+    public static void displayAllRestaurants(Connection con) throws Exception {
+        String query = "SELECT * FROM Restaurant";
         try (Statement st = con.createStatement();
-             ResultSet rs = st.executeQuery(sql)) {
+             ResultSet rs = st.executeQuery(query)) {
+            System.out.println("\nAll Restaurants After Insert:");
+            System.out.printf("%-5s %-20s %-30s\n", "ID", "Name", "Address");
+            System.out.println("---------------------------------------------------------------");
             while (rs.next()) {
-                String[] row = {
-                    String.valueOf(rs.getInt("Id")),
-                    rs.getString("Name"),
-                    rs.getString("Address")
-                };
-                list.add(row);
+                System.out.printf("%-5d %-20s %-30s\n",
+                        rs.getInt("Id"),
+                        rs.getString("Name"),
+                        rs.getString("Address"));
             }
         }
-        return list;
     }
 
-    // UPDATE Restaurant
-    public static int updateRestaurant(Connection con, int id, String name, String address)
-            throws Exception {
-        String sql = "UPDATE Restaurant SET Name=?, Address=? WHERE Id=?";
-        try (PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, name);
-            ps.setString(2, address);
-            ps.setInt(3, id);
-            return ps.executeUpdate(); // returns number of rows affected
-        }
-    }
-
-    // DELETE Restaurant
-    public static int deleteRestaurant(Connection con, int id) throws Exception {
-        String sql = "DELETE FROM Restaurant WHERE Id=?";
-        try (PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setInt(1, id);
-            return ps.executeUpdate();
-        }
-    }
-
-    public static void insertMenuItem(Connection con, int id, String name, double price, int resId)
-            throws Exception {
-        String sql = "INSERT INTO MenuItem VALUES (?, ?, ?, ?)";
-        try (PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setInt(1, id);
-            ps.setString(2, name);
-            ps.setDouble(3, price);
-            ps.setInt(4, resId);
-            ps.executeUpdate();
-        }
-    }
-
-    public static ArrayList<String[]> getAllMenuItems(Connection con) throws Exception {
-        ArrayList<String[]> list = new ArrayList<String[]>();
-        String sql = "SELECT * FROM MenuItem";
+    public static void displayAllMenuAfterInsert(Connection con) throws Exception {
+        String query = "SELECT * FROM MenuItem";
         try (Statement st = con.createStatement();
-             ResultSet rs = st.executeQuery(sql)) {
-            while (rs.next()) {
-                String[] row = {
-                    String.valueOf(rs.getInt("Id")),
+             ResultSet rs = st.executeQuery(query)) {
+            System.out.println("\nAll Menu Items After Insert:");
+            printMenu(rs);
+        }
+    }
+
+    public static void selectPriceLessThan100(Connection con) throws Exception {
+
+        String query = "SELECT * FROM MenuItem WHERE Price <= 100";
+        try (Statement st = con.createStatement();
+             ResultSet rs = st.executeQuery(query)) {
+
+            System.out.println("\nMenu Items with Price <= 100:");
+            printMenu(rs);
+        }
+    }
+
+    public static void selectCafeJavaItems(Connection con) throws Exception {
+
+        String query = "SELECT m.* FROM MenuItem m " +
+                "JOIN Restaurant r ON m.ResId = r.Id " +
+                "WHERE r.Name = 'Cafe Java'";
+
+        try (Statement st = con.createStatement();
+             ResultSet rs = st.executeQuery(query)) {
+
+            System.out.println("\nItems from Cafe Java:");
+            printMenu(rs);
+        }
+    }
+
+    public static void updatePrice(Connection con) throws Exception {
+
+        String query = "UPDATE MenuItem SET Price = 200 WHERE Price <= 100";
+        try (Statement st = con.createStatement()) {
+            int rows = st.executeUpdate(query);
+            System.out.println("\nUpdated rows (Price <= 100 to 200): " + rows);
+        }
+        
+        // Display menu items after update
+        String selectQuery = "SELECT * FROM MenuItem ORDER BY Id";
+        try (Statement st = con.createStatement();
+             ResultSet rs = st.executeQuery(selectQuery)) {
+            System.out.println("\nMenu Items After Update:");
+            printMenu(rs);
+        }
+    }
+
+    public static void deleteItems(Connection con) throws Exception {
+
+        String query = "DELETE FROM MenuItem WHERE Name LIKE 'P%'";
+        try (Statement st = con.createStatement()) {
+            int rows = st.executeUpdate(query);
+            System.out.println("\nDeleted rows (Name starting with 'P'): " + rows);
+        }
+        
+        String selectQuery = "SELECT * FROM MenuItem ORDER BY Id";
+        try (Statement st = con.createStatement();
+             ResultSet rs = st.executeQuery(selectQuery)) {
+            System.out.println("\nMenu Items After Deletion:");
+            printMenu(rs);
+        }
+    }
+
+    public static void selectAllItems(Connection con) throws Exception {
+        String query = "SELECT * FROM MenuItem";
+        try (Statement st = con.createStatement();
+             ResultSet rs = st.executeQuery(query)) {
+
+            System.out.println("\nFinal Menu Items Data:");
+            printMenu(rs);
+        }
+    }
+
+    public static void printMenu(ResultSet rs) throws Exception {
+
+        System.out.printf("%-5s %-15s %-10s %-10s\n", "ID", "Name", "Price", "ResId");
+
+        boolean hasRows = false;
+        while (rs.next()) {
+            hasRows = true;
+            System.out.printf("%-5d %-15s %-10.2f %-10d\n",
+                    rs.getInt("Id"),
                     rs.getString("Name"),
-                    String.valueOf(rs.getDouble("Price")),
-                    String.valueOf(rs.getInt("ResId"))
-                };
-                list.add(row);
-            }
+                    rs.getDouble("Price"),
+                    rs.getInt("ResId"));
         }
-        return list;
-    }
-
-    public static int updateMenuItem(Connection con, int id, String name, double price, int resId)
-            throws Exception {
-        String sql = "UPDATE MenuItem SET Name=?, Price=?, ResId=? WHERE Id=?";
-        try (PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, name);
-            ps.setDouble(2, price);
-            ps.setInt(3, resId);
-            ps.setInt(4, id);
-            return ps.executeUpdate();
+        
+        if (!hasRows) {
+            System.out.println("(No records found)");
         }
     }
+    public static void main(String[] args) {
+        System.out.println("Starting RestaurantJDBC Application...");
 
-    public static int deleteMenuItem(Connection con, int id) throws Exception {
-        String sql = "DELETE FROM MenuItem WHERE Id=?";
-        try (PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setInt(1, id);
-            return ps.executeUpdate();
-        }
-    }
+        try {
+            System.out.println("Connecting to MySQL database...");
+            Connection con = getConnection();
+            System.out.println(" Connected successfully!\n");
 
-    public static ArrayList<String[]> getMenuItemsByMaxPrice(Connection con, double maxPrice)
-            throws Exception {
-        ArrayList<String[]> list = new ArrayList<String[]>();
-        String sql = "SELECT * FROM MenuItem WHERE Price <= ?";
-        try (PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setDouble(1, maxPrice);
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()) {
-                String[] row = {
-                    String.valueOf(rs.getInt("Id")),
-                    rs.getString("Name"),
-                    String.valueOf(rs.getDouble("Price")),
-                    String.valueOf(rs.getInt("ResId"))
-                };
-                list.add(row);
-            }
+            System.out.println("Creating tables...");
+            createTables(con);
+            System.out.println();
+
+            System.out.println("Inserting data...");
+            insertData(con);
+            System.out.println();
+
+            System.out.println("Displaying all restaurants...");
+            displayAllRestaurants(con);
+            System.out.println();
+
+            System.out.println("Displaying all menu items after insert...");
+            displayAllMenuAfterInsert(con);
+            System.out.println();
+
+            System.out.println("Selecting items with Price <= 100...");
+            selectPriceLessThan100(con);
+            System.out.println();
+
+            System.out.println("Selecting items from Cafe Java...");
+            selectCafeJavaItems(con);
+            System.out.println();
+
+            System.out.println("Updating prices (Price <= 100 to 200)...");
+            updatePrice(con);
+            System.out.println();
+
+            System.out.println("Deleting items starting with 'P'...");
+            deleteItems(con);
+            System.out.println();
+
+            System.out.println("FINAL TABLE DATA AFTER ALL OPERATIONS");
+            selectAllItems(con);
+            System.out.println("\n Program completed successfully!\n");
+
+            con.close();
+
+        } catch (Exception e) {
+            System.err.println("ERROR: An unexpected error occurred!");
+            e.printStackTrace();
         }
-        return list;
     }
 }
