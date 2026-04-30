@@ -1,5 +1,8 @@
-public class InvalidPriceException extends Exception{
-    public InvalidPriceException(String m){
-        super(m);
+// User Defined Exception
+class InvalidPriceException extends Exception
+{
+    public InvalidPriceException(String message)
+    {
+        super(message);
     }
 }
